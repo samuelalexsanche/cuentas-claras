@@ -1,0 +1,62 @@
+<div class="app">
+  <aside class="side" id="side" aria-label="Índice del curso">
+    <div class="brand-row">
+      <div class="brand"><b>Cuentas Claras</b><small>Funciones y combinatoria</small></div>
+      <button class="btn sm" type="button" id="outline-toggle" aria-expanded="false" aria-controls="outline-wrap">Índice</button>
+    </div>
+    <div class="outline-wrap" id="outline-wrap">
+      <nav class="nav"><a href="#inicio" data-route="inicio">Inicio y progreso</a></nav>
+      <div class="side-prog">
+        <div class="pg-row"><span>Lecciones completas</span><b id="pg-les">0 / 0</b></div>
+        <div class="bar"><i id="pg-bar"></i></div>
+      </div>
+      <div class="outline" id="outline"></div>
+      <div>
+        <div class="nav-label">Herramientas</div>
+        <nav class="nav"><a href="#hoja" data-route="hoja">Hoja de actividades<span class="count" id="hoja-count"></span></a><a href="#formulario" data-route="formulario">Formulario</a><a href="#calculadora" data-route="calculadora">Calculadora</a></nav>
+      </div>
+      <label class="switch" for="modo-libre"><input type="checkbox" id="modo-libre"> Abrir todas las lecciones</label>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+
+<section class="view" data-view="inicio" id="dash"></section>
+
+<section class="view" data-view="hoja" hidden>
+  <header class="hero"><p class="eyebrow">Problemas de combinatoria · Creative Commons</p><h1>Hoja de actividades</h1><p class="lede">Los 61 problemas de tu hoja, con revisión automática y solución explicada. Los que también están en una lección comparten avance: si lo resuelves aquí, cuenta allá.</p></header>
+  <div class="sheet"><div id="hoja-prog"></div><div class="callout"><b>Tres soluciones de la hoja traen errores de imprenta.</b> #13 dice 4320 pero 10·9·8·7 = 5,040. #15 dice 177100000 pero 10⁵ = 100,000. #41 usa cuatro números en vez de tres (con tres es 17,576,000). Si escribes el número de la hoja, el corrector te lo explica.</div><div class="chips" id="hoja-chips"></div></div>
+  <div class="ex-list" id="hoja-list" style="display:flex;flex-direction:column;gap:14px"></div>
+</section>
+
+<section class="view" data-view="formulario" hidden>
+  <header class="hero"><p class="eyebrow">Para repasar antes del examen</p><h1>Formulario</h1><p class="lede">Todo el módulo en una página: definiciones de funciones, reglas de conteo, fórmulas con su nombre en tu hoja y en la calculadora, y las técnicas para condiciones.</p></header>
+  <div id="formulario-body" style="display:flex;flex-direction:column;gap:22px"></div>
+</section>
+
+<section class="view" data-view="calculadora" hidden>
+  <header class="hero"><p class="eyebrow">Herramienta</p><h1>Calculadora</h1><p class="lede">Calcula con números exactos, sin redondear, aunque tengan decenas de cifras. Entiende la notación de tu clase y la de la hoja.</p></header>
+  <div class="sheet"><div class="calc" id="calc-main"></div><div class="wg-h"><h3>Historial</h3><button class="btn sm link" type="button" id="calc-clear">Borrar</button></div><div class="hist" id="calc-hist"></div></div>
+  <div class="sheet"><h2>Qué puedes escribir</h2>
+    <div class="tw"><table class="t"><tr><th>Escribe</th><th>Significa</th><th>Ejemplo</th></tr>
+    <tr><td class="mono">+ − * / ^ ( )</td><td>Operaciones y potencias</td><td class="mono">26^3*10^2</td></tr>
+    <tr><td class="mono">n!</td><td>Factorial</td><td class="mono">10!/8!</td></tr>
+    <tr><td class="mono">C(n,r)</td><td>Combinaciones</td><td class="mono">C(49,6)</td></tr>
+    <tr><td class="mono">P(n,r) · V(n,r)</td><td>Permutaciones (variaciones)</td><td class="mono">P(10,3)</td></tr>
+    <tr><td class="mono">VR(n,r)</td><td>Con repetición: nʳ</td><td class="mono">VR(3,15)</td></tr>
+    <tr><td class="mono">CR(n,r)</td><td>Combinaciones con repetición</td><td class="mono">CR(5,12)</td></tr>
+    <tr><td class="mono">PR(n,a,b,…)</td><td>Ordenar con repetidos</td><td class="mono">PR(11,2,3,2)</td></tr>
+    <tr><td class="mono">PC(n)</td><td>Permutación circular (n − 1)!</td><td class="mono">PC(8)</td></tr>
+    <tr><td class="mono">a mod n</td><td>Residuo</td><td class="mono">88 mod 60</td></tr></table></div>
+    <p class="small">También acepta 2·3, 2×3, 26³ y multiplicación implícita como 2C(5,2).</p></div>
+  <div data-enum data-items="A,B,C,D" data-r="2" data-mode="P"></div>
+  <div data-fb></div>
+</section>
+
+<section class="view" data-view="autoprueba" hidden>
+  <header class="hero"><p class="eyebrow">Revisión interna</p><h1>Autoprueba</h1><p class="lede">Revisa que cada respuesta guardada pase su propio corrector, compara contra fuerza bruta donde se puede y valida las preguntas con cuentas.</p></header>
+  <div class="sheet selftest" id="selftest-out"><p class="small">Corriendo…</p></div>
+</section>
+
+  </main>
+</div>
