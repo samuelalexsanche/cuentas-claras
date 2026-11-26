@@ -316,3 +316,4 @@ textarea.ans.long{width:100%;min-height:8.5em;resize:vertical;font-family:var(--
 .ol li.extra .lt{color:var(--muted)}
 .ol li .lm{margin-left:auto;font-family:var(--f-mono);font-size:.68rem;color:var(--muted);flex:none;padding-left:8px}
 .solbox .prose p + p,.why p + p{margin-top:8px}
+table.t.wrap{min-width:0}

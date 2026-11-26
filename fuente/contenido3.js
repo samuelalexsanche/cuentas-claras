@@ -49,12 +49,43 @@ ${WHY('funcion')}
       { q:'Si f : {1, 2, 3} → {1, 2, 3, 4, 5}, ¿cuál es el tamaño máximo del rango?', o:['3','5','8'], a:0, chk:'3', w:'Cada elemento del dominio aporta una sola imagen: a lo más 3 imágenes distintas.' },
       { teo:true, q:'Si juntas las imágenes inversas de todos los y ∈ Y, ¿cuántos elementos hay en total?', o:['|X|','|Y|','|X| · |Y|'], a:0, w:'Cada x está en exactamente una imagen inversa (la de f(x)): las imágenes inversas reparten X sin repetir.' } ],
     ex:['F5'], mas:['F6','F7','F8'] },
-  { id:'inyectiva-sobre', t:'Inyectiva, sobreyectiva y biyectiva', obj:'Demostrar o refutar que una función es inyectiva o sobreyectiva, y reconocerlo en un diagrama.',
-    intro:[`<h2>Inyectiva y sobreyectiva</h2>
-<p class="prose">f : X → Y es <b>inyectiva</b> (uno a uno) si elementos distintos van a imágenes distintas. En el diagrama: <b>ningún elemento de Y recibe dos flechas</b>.</p>
-<div class="big-f">∀x₁, x₂ ∈ X: si f(x₁) = f(x₂) entonces x₁ = x₂</div>
-<p class="prose">f es <b>sobreyectiva</b> (suprayectiva) si todo elemento de Y es imagen de alguien. En el diagrama: <b>todos los de Y reciben al menos una flecha</b>; es decir, rango = codominio.</p>
-<div class="big-f">∀y ∈ Y, ∃x ∈ X tal que f(x) = y</div>
+  { id:'inyectiva-sobre', t:'Inyectiva, sobreyectiva y biyectiva', obj:'Entender con un salón de clases qué significa cada palabra, revisarla en un diagrama o en una fórmula y escribir la demostración.',
+    intro:[`<h2>Primero sin fórmulas: un salón</h2>
+<p class="prose">Imagina un salón. X son los <b>alumnos</b>, Y son las <b>sillas</b>, y la función f le dice a cada alumno en qué silla se sienta. Que sea función solo pide que <b>cada alumno tenga exactamente una silla</b>, que es lo que viste en la lección anterior.</p>
+<p class="prose">Las tres palabras nuevas son preguntas sobre las <b>sillas</b>, no sobre los alumnos:</p>
+<div class="tw"><table class="t wrap"><tr><th>Palabra</th><th>En el salón</th><th>Cómo la revisas</th></tr>
+<tr><td><b>Inyectiva</b></td><td>Nadie comparte silla.</td><td>¿Hay una silla con dos alumnos o más? Si la hay, <b>no</b> es inyectiva.</td></tr>
+<tr><td><b>Sobreyectiva</b></td><td>No sobra ninguna silla.</td><td>¿Hay una silla vacía? Si la hay, <b>no</b> es sobreyectiva.</td></tr>
+<tr><td><b>Biyectiva</b></td><td>Las dos cosas: cada silla tiene exactamente un alumno.</td><td>Ni sillas compartidas ni sillas vacías.</td></tr></table></div>
+<div data-arrows="sA sB sC sD"></div>
+<div class="note"><b>Para acordarte:</b> sobre-yectiva, que no <b>sobre</b> ninguna silla. Bi-yectiva, que cumpla las <b>dos</b>. Y la inyectiva es la de «cada quien en su silla».</div>`,
+`<h2>En un diagrama: mira el lado derecho</h2>
+<p class="prose">En un diagrama de flechas los alumnos son los puntos de la izquierda y las sillas los de la derecha. Para decidir, <b>cuenta cuántas flechas le llegan a cada punto de la derecha</b>:</p>
+<div class="tw"><table class="t wrap"><tr><th>A un punto de Y le llegan…</th><th>Qué significa</th></tr>
+<tr><td>0 flechas</td><td>Silla vacía: <b>no es sobreyectiva</b>.</td></tr>
+<tr><td>2 flechas o más</td><td>Silla compartida: <b>no es inyectiva</b>.</td></tr>
+<tr><td>Exactamente 1, a todos</td><td><b>Biyectiva</b>.</td></tr></table></div>
+<div class="callout"><b>No te equivoques de lado.</b> «¿Es función?» se revisa a la <b>izquierda</b>: de cada punto sale exactamente una flecha. Inyectiva y sobreyectiva se revisan a la <b>derecha</b>. Una silla vacía no impide que sea función; solo impide que sea sobreyectiva.</div>
+<h3>Atajo: compara los tamaños antes de mirar flechas</h3>
+<ul><li><b>Más alumnos que sillas</b> (|X| > |Y|): a fuerza dos comparten, así que <b>nunca</b> es inyectiva.</li><li><b>Menos alumnos que sillas</b> (|X| < |Y|): a fuerza sobran sillas, así que <b>nunca</b> es sobreyectiva.</li><li>Para ser biyectiva necesitas <b>tantos alumnos como sillas</b> (|X| = |Y|).</li></ul>
+${WHY('palomar')}`,
+`<h2>Con una fórmula: las mismas dos preguntas</h2>
+<p class="prose">Con f(x) = 4x − 1 no hay dibujo, pero se pregunta lo mismo. Los «alumnos» son los números que metes (x) y las «sillas» son los resultados (y).</p>
+<h3>¿Es inyectiva? ¿Dos x distintas dan el mismo resultado?</h3>
+<ul><li><b>Para decir que no</b> basta un ejemplo. Con g(x) = x²: g(2) = 4 y g(−2) = 4. Dos alumnos en la misma silla, y ya terminaste.</li><li><b>Para demostrar que sí</b> supones que dos cayeron en la misma silla, f(x₁) = f(x₂), y despejas. Si llegas a x₁ = x₂, eran el mismo alumno: nunca hay silla compartida.</li></ul>
+<div class="big-f">4x₁ − 1 = 4x₂ − 1<br>4x₁ = 4x₂ <span class="small">(sumas 1)</span><br>x₁ = x₂ <span class="small">(divides entre 4)</span></div>
+<h3>¿Es sobreyectiva? ¿Qué x tengo que meter para que salga y?</h3>
+<ul><li>Toma un y cualquiera del codominio y <b>despeja x</b>.</li><li>Si esa x <b>siempre existe y está en el dominio</b>, toda silla tiene a alguien: es sobreyectiva.</li><li>Si para algún y la x no existe o no está permitida, encontraste una silla vacía.</li></ul>
+<div class="big-f">y = 4x − 1<br>x = (y + 1)/4</div>
+<p class="prose">Para cualquier y real, (y + 1)/4 también es real, y f((y + 1)/4) = y. No hay sillas vacías.</p>
+<p class="prose">Ejemplo de la silla vacía: h : ℤ → ℤ, h(x) = 2x. Para que salga 1 necesitas x = 1/2, que no es entero. Nadie llega al 1, así que h no es sobreyectiva.</p>
+<div class="callout"><b>La misma fórmula puede cambiar de respuesta.</b> x² de ℝ en ℝ no es inyectiva (2 y −2 chocan) ni sobreyectiva (nadie llega a −1). De [0, ∞) en [0, ∞) sí es biyectiva: quitaste los negativos que chocaban y las sillas negativas que nadie usaba. Por eso siempre lee el <b>f : X → Y</b>.</div>
+<h3>Lo que dice el libro, traducido</h3>
+<div class="tw"><table class="t wrap"><tr><th>Definición formal</th><th>Traducción</th></tr>
+<tr><td class="mono">f(x₁) = f(x₂) ⇒ x₁ = x₂</td><td><b>Inyectiva:</b> si dos cayeron en la misma silla, eran el mismo alumno.</td></tr>
+<tr><td class="mono">∀y ∈ Y, ∃x ∈ X: f(x) = y</td><td><b>Sobreyectiva:</b> en cada silla hay alguien sentado.</td></tr>
+<tr><td class="mono">Rango f = Y</td><td><b>Sobreyectiva</b> otra vez: las sillas ocupadas son todas las sillas.</td></tr></table></div>
+<p class="prose">Así se escribe en el examen:</p>
 ${WHY('iny-sobre')}`,
 `<h2>Los cinco casos de la clase</h2>
 <div class="tw"><table class="t"><tr><th>Función</th><th>¿Sobreyectiva?</th><th>Por qué</th><th>Cómo volverla sobreyectiva</th></tr>
@@ -63,14 +94,14 @@ ${WHY('iny-sobre')}`,
 <tr><td class="mono">g : ℝ → ℝ, g(x) = sen x</td><td>No</td><td>sen x nunca vale 2</td><td class="mono">g : ℝ → [−1, 1]</td></tr>
 <tr><td class="mono">k : {a,b,c} → {1,2,3}</td><td>Sí</td><td>cada número recibe una letra</td><td>—</td></tr>
 <tr><td class="mono">m : ℕ → ℕ, m(n) = n + 1</td><td>No</td><td>el 1 no es n + 1 para ningún natural</td><td class="mono">m : ℕ → {2, 3, 4, …}</td></tr></table></div>
-<div class="note">Para volver sobreyectiva una función, achica el codominio hasta que sea igual al rango.</div>`,
-`<h2>Biyectiva y la regla de los tamaños</h2>
-<p class="prose"><b>Biyectiva</b> = inyectiva y sobreyectiva: cada elemento de Y recibe exactamente una flecha. Solo las biyectivas tienen inversa.</p>
-<div data-arrows="ap1 ap2 ap3"></div>
-${WHY('palomar')}
-<p class="prose">Juega con este constructor: cambia las flechas y mira el veredicto.</p>
+<div class="note">Para volverla sobreyectiva, quita del codominio las sillas que nadie usa: achícalo hasta que sea igual al rango.</div>
+<h2>Biyectiva: parejas perfectas</h2>
+<p class="prose">Biyectiva es inyectiva <b>y</b> sobreyectiva: cada silla tiene exactamente un alumno. Por eso <b>solo las biyectivas tienen inversa</b>: con la silla sabes quién está sentado y puedes regresar. Si una silla tuviera dos alumnos no sabrías a cuál regresar, y si estuviera vacía no habría a quién.</p>
+<div class="note">Otros nombres que te pueden aparecer: inyectiva = <b>uno a uno</b>; sobreyectiva = <b>suprayectiva</b>; biyectiva = <b>biunívoca</b>.</div>
+<p class="prose">Juega con este constructor: deja una silla vacía o junta dos letras en el mismo número y mira cómo cambia el veredicto.</p>
 <div data-fb></div>`],
     quiz:[
+      { q:'En un salón, cada alumno se sienta en una silla. Nadie comparte silla, pero queda una silla vacía. La función alumno → silla es…', o:OPT_CLAS, a:0, w:'Nadie comparte: inyectiva. Hay una silla vacía: no es sobreyectiva.' },
       { teo:true, q:'Para demostrar que una función NO es inyectiva basta…', o:['Un contraejemplo: x₁ ≠ x₂ con f(x₁) = f(x₂)','Revisar que f(0) = 0','Probar con tres valores que dan distinto'], a:0, w:'Un solo par de elementos distintos con la misma imagen tumba la inyectividad.' },
       { teo:true, q:'Para demostrar que f : X → Y es sobreyectiva…', o:['Tomas un y cualquiera de Y y encuentras una x en X con f(x) = y','Pruebas con varios valores de x y ves que dan resultados distintos','Supones f(x₁) = f(x₂) y llegas a x₁ = x₂'], a:0, w:'La tercera es la demostración de inyectiva. Probar con ejemplos no demuestra nada.' },
       { teo:true, q:'Si |X| = 5 y |Y| = 3, una función f : X → Y…', o:['Puede ser inyectiva','Nunca es inyectiva','Siempre es biyectiva'], a:1, w:'Con 5 flechas y solo 3 destinos, algún destino recibe dos (principio del palomar).' } ],
