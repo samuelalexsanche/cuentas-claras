@@ -9,7 +9,7 @@ set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO="cuentas-claras"
 cd "$DIR"
-for f in estilos.css cuerpo.html base.js contenido1.js contenido2.js contenido3.js app.js; do
+for f in estilos.css cuerpo.html base.js contenido1.js contenido2.js teoria.js contenido3.js app.js; do
   [ -f "fuente/$f" ] || { echo "No encuentro fuente/$f"; exit 1; }
 done
 
@@ -22,7 +22,7 @@ done
   printf '<style>\n'; cat fuente/estilos.css; printf '</style>\n</head>\n<body>\n'
   cat fuente/cuerpo.html
   printf '<script>\n(function(){\n'
-  cat fuente/base.js fuente/contenido1.js fuente/contenido2.js fuente/contenido3.js fuente/app.js
+  cat fuente/base.js fuente/contenido1.js fuente/contenido2.js fuente/teoria.js fuente/contenido3.js fuente/app.js
   printf '\n})();\n</script>\n</body>\n</html>\n'
 } > index.html
 

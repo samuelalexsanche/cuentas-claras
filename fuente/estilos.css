@@ -292,3 +292,27 @@ details.hint[open]>summary{border-bottom:1px solid var(--code-line);margin-botto
   .two,.how,.tools-row,.fb-cols{grid-template-columns:minmax(0,1fr)}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* ---------- Teoría, más práctica y Explícalo ---------- */
+.why{border:1px solid var(--rule);border-left:4px solid var(--pen);border-radius:0 6px 6px 0;background:var(--paper);padding:12px 14px;display:flex;flex-direction:column;gap:8px;font-size:.95rem}
+.why .why-k{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--pen);font-weight:600}
+.why h4{margin:0;font-family:var(--f-display);font-size:1.02rem;line-height:1.25}
+.why p{margin:0}
+.why ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:5px}
+.why .big-f{font-size:.95rem}
+.sheet .why + .why{margin-top:4px}
+.teo{display:inline-block;font-family:var(--f-mono);font-size:.66rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--pen);background:var(--pen-soft);border-radius:99px;padding:1px 7px;margin-right:6px;vertical-align:1px}
+.chip.teo{border-color:transparent;background:var(--pen-soft);color:var(--pen);font-weight:600}
+details.more{margin-top:14px;border:1px dashed var(--rule);border-radius:var(--r);padding:10px 14px;background:var(--sheet)}
+details.more > summary{cursor:pointer;font-weight:700;color:var(--pen);list-style-position:inside}
+details.more[open] > summary{margin-bottom:8px}
+details.more .more-body{display:flex;flex-direction:column;gap:14px;margin-top:10px}
+textarea.ans.long{width:100%;min-height:8.5em;resize:vertical;font-family:var(--f-body);font-size:15px;line-height:1.5}
+.ex.explica .pt{flex-direction:column;align-items:stretch}
+.checklist{display:flex;flex-direction:column;gap:8px;border:1px solid var(--rule);border-radius:5px;padding:12px 14px;background:var(--sheet)}
+.ck{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:.95rem;line-height:1.4}
+.ck input{margin-top:3px;width:17px;height:17px;flex:none;accent-color:var(--ok)}
+.ck-msg:empty{display:none}
+.ol li.extra .lt{color:var(--muted)}
+.ol li .lm{margin-left:auto;font-family:var(--f-mono);font-size:.68rem;color:var(--muted);flex:none;padding-left:8px}
+.solbox .prose p + p,.why p + p{margin-top:8px}

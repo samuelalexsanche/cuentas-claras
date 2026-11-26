@@ -1,5 +1,6 @@
 /* ======================= CONTENIDO · AJUSTES Y AYUDAS ======================= */
-const EXAM_Q = 12, EXAM_PASS = 10, EXAM_EX = ['fun', 'prod', 'perm', 'comb', 'cond', 'mix'];
+const EXAM_Q = 10, EXAM_PASS = 8, EXAM_TEO = 4, EXAM_EX = ['fun', 'prod', 'perm', 'cond', 'teo'];
+const EXAM_BANK = { fun: ['fun'], prod: ['prod', 'comb'], perm: ['perm', 'mix'], cond: ['cond'], teo: ['teo'] };
 const TREE_EXPECT = { torneo: 10, monedas: 13, oficiales: 8, es: 12, serie: 6 };
 const calc = (e, tag) => '<div class="calc" data-e="' + esc(e) + '"' + (tag ? ' data-tag="' + esc(tag) + '"' : '') + '></div>';
 const F = (a, b) => '<span class="frac"><span>' + a + '</span><span>' + b + '</span></span>';

@@ -5,7 +5,7 @@ EX.forEach(e => {
   e.parts.forEach(p => { if (!p.k) p.k = p.o ? 'opt' : 'num'; });
   EXBYID[e.id] = e;
 });
-const SRC_LABEL = e => e.src === 'hoja' ? 'Hoja #' + e.n : e.src === 'diap' ? 'Diapositiva' : e.src === 'libro' ? 'Libro' : e.src === 'examen' ? 'Tipo examen' : 'Extra';
+const SRC_LABEL = e => e.src === 'hoja' ? 'Hoja #' + e.n : e.src === 'diap' ? 'Diapositiva' : e.src === 'libro' ? 'Libro' : e.src === 'examen' ? (e.k === 'explica' ? 'Teoría · tipo examen' : 'Tipo examen') : e.src === 'teoria' ? 'Teoría' : 'Extra';
 const PH = { num: 'Número o expresión, p. ej. C(10,3)', set: 'Conjunto, p. ej. {a, c}  o  ∅', val: 'Un valor', expr: 'Expresión, p. ej. (n+1)^3' };
 const solved = store.get('solved', {});
 const tries = store.get('tries', {});
@@ -142,8 +142,39 @@ function partHTML(e, p, i, pre){
   else h += '<div class="pt-in"><input class="ans" id="' + inId + '" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="' + esc(p.ph || PH[p.k] || PH.num) + '"' + (p.l ? '' : ' aria-label="Tu respuesta"') + '><span class="pt-st" aria-hidden="true"></span></div><div class="pt-prev"></div>';
   return h + '<div class="pt-msg" aria-live="polite"></div></div>';
 }
+function explicaCard(e, pre, ok){
+  return '<article class="ex explica' + (ok ? ' solved' : '') + '" id="' + pre + 'ej-' + e.id + '" data-id="' + e.id + '" data-pre="' + pre + '">' +
+    '<div class="ex-h"><span class="ex-id">' + e.id + '</span><h3>' + e.t + '</h3><span class="chip teo">' + SRC_LABEL(e) + '</span><span class="chip done"' + (ok ? '' : ' hidden') + '>Resuelto</span></div>' +
+    '<div class="ex-q">' + e.q + '</div>' +
+    '<div class="parts"><div class="pt" data-i="0"><label class="pt-l" for="' + pre + 'in-' + e.id + '-0">Tu explicación</label><textarea class="ans long" id="' + pre + 'in-' + e.id + '-0" rows="6" spellcheck="true" placeholder="Escríbela como en el examen: qué cuenta, qué regla usas y a qué llegas."></textarea></div></div>' +
+    '<div class="ex-actions"><button class="btn primary" type="button" data-act="cmp">Comparar con la respuesta modelo</button></div>' +
+    '<div class="ex-out"></div></article>';
+}
+function explicaOut(e, card){
+  const c = store.get(card.dataset.dk, {}).c || [];
+  card.querySelector('.ex-out').innerHTML = '<div class="solbox"><p class="eyebrow">Respuesta modelo</p><div class="prose">' + e.sol + '</div></div>' +
+    '<div class="checklist"><p class="small"><b>Revisa tu explicación.</b> Marca cada punto que sí dijiste, aunque sea con otras palabras. Si te faltó alguno, agrégalo arriba con tus palabras y márcalo.</p>' +
+    e.puntos.map((t, i) => '<label class="ck"><input type="checkbox" data-ck="' + i + '"' + (c[i] ? ' checked' : '') + '><span>' + t + '</span></label>').join('') + '</div><div class="ck-msg" aria-live="polite"></div>';
+  paintCk(e, card);
+}
+function paintCk(e, card){
+  const c = store.get(card.dataset.dk, {}).c || []; const n = e.puntos.filter((t, i) => c[i]).length; const m = card.querySelector('.ck-msg'); if (!m) return;
+  m.innerHTML = n === e.puntos.length ? '<div class="msg ok"><span class="tag">Completo</span>Tu explicación tiene todos los puntos. Así la contestarías en el examen.</div>' : '<div class="msg info"><span class="tag">' + n + ' de ' + e.puntos.length + '</span>Cuando tu explicación tenga todos los puntos, el ejercicio cuenta como resuelto.</div>';
+}
+document.addEventListener('change', ev => {
+  const b = ev.target.closest('.ex.explica input[data-ck]'); if (!b) return;
+  const card = b.closest('.ex'); const e = EXBYID[card.dataset.id]; const d = store.get(card.dataset.dk, {});
+  d.c = e.puntos.map((t, i) => !!(card.querySelector('input[data-ck="' + i + '"]') || {}).checked); store.set(card.dataset.dk, d);
+  if (d.c.every(Boolean)) {
+    solved[e.id] = true; store.set('solved', solved);
+    if (card.dataset.pre === 'exam-' && exam) { exam.solvedEx[e.id] = true; store.set('exam', exam); }
+    refreshProgress();
+  }
+  paintCk(e, card);
+});
 function exCard(e, pre){
   const ok = pre === 'exam-' ? !!(exam && exam.solvedEx[e.id]) : !!solved[e.id];
+  if (e.k === 'explica') return explicaCard(e, pre, ok);
   return '<article class="ex' + (ok ? ' solved' : '') + '" id="' + pre + 'ej-' + e.id + '" data-id="' + e.id + '" data-pre="' + pre + '">' +
     '<div class="ex-h"><span class="ex-id">' + e.id + '</span><h3>' + e.t + '</h3><span class="chip">' + SRC_LABEL(e) + '</span>' + (e.errata ? '<span class="chip warn">La hoja trae un error</span>' : '') + '<span class="chip done"' + (ok ? '' : ' hidden') + '>Resuelto</span></div>' +
     '<div class="ex-q">' + e.q + '</div>' +
@@ -158,7 +189,7 @@ function partVal(card, i){
 }
 function preview(inp){
   const pt = inp.closest('.pt'); const card = inp.closest('.ex'); const e = EXBYID[card.dataset.id]; const p = e.parts[+pt.dataset.i];
-  const prev = $('.pt-prev', pt); prev.textContent = '';
+  const prev = $('.pt-prev', pt); if (!prev) return; prev.textContent = '';
   if (p.k !== 'num' || !inp.value.trim()) return;
   const r = tryEval(inp.value);
   if (r.q && !/^[\d,.\s−-]+$/.test(inp.value.trim())) prev.textContent = '= ' + fmtQ(r.q) + (approxQ(r.q) ? '  ' + approxQ(r.q) : '');
@@ -175,14 +206,15 @@ function mountExercises(host, ids, pre, draftPrefix){
       if (p.k === 'opt') { if (saved[i] !== undefined) { pt.dataset.v = saved[i]; paintOpt(pt); } return; }
       const inp = pt.querySelector('.ans'); inp.value = saved[i] || ''; preview(inp);
       let t = null;
-      inp.addEventListener('input', () => { preview(inp); pt.classList.remove('ok', 'bad'); $('.pt-st', pt).textContent = ''; clearTimeout(t); t = setTimeout(() => saveDraft(card), 300); });
-      inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); onAct(e, card, 'check'); } });
+      inp.addEventListener('input', () => { preview(inp); pt.classList.remove('ok', 'bad'); const st = $('.pt-st', pt); if (st) st.textContent = ''; clearTimeout(t); t = setTimeout(() => saveDraft(card), 300); });
+      if (e.k !== 'explica') inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); onAct(e, card, 'check'); } });
     });
+    if (e.k === 'explica' && saved.c) explicaOut(e, card);
     mountWidgets(card);
   });
 }
 function saveDraft(card){
-  const e = EXBYID[card.dataset.id]; const d = {};
+  const e = EXBYID[card.dataset.id]; const d = {}; const old = store.get(card.dataset.dk, {}); if (old.c) d.c = old.c;
   e.parts.forEach((p, i) => { const v = partVal(card, i); if (v !== undefined && v !== '') d[i] = v; });
   store.set(card.dataset.dk, d);
 }
@@ -211,6 +243,13 @@ function solHTML(e){
 function onAct(e, card, act){
   const out = card.querySelector('.ex-out'); const inExam = card.dataset.pre === 'exam-';
   if (act === 'hint') { const h = card.querySelector('[data-hint]'); if (h) h.hidden = !h.hidden; return; }
+  if (act === 'cmp') {
+    if (partVal(card, 0).trim().length < 40) { out.innerHTML = '<div class="msg info"><span class="tag">Primero escribe</span>Escribe tu explicación (un par de frases por lo menos) antes de ver la respuesta modelo. Así practicas lo que harás en el examen.</div>'; return; }
+    tries[e.id] = (tries[e.id] || 0) + 1; store.set('tries', tries);
+    if (inExam && exam) { exam.tried = exam.tried || {}; exam.tried[e.id] = true; store.set('exam', exam); }
+    saveDraft(card); const d = store.get(card.dataset.dk, {}); if (!d.c) { d.c = e.puntos.map(() => false); store.set(card.dataset.dk, d); }
+    explicaOut(e, card); return;
+  }
   if (act === 'sol') {
     if (!tries[e.id] && !(inExam && exam && exam.tried && exam.tried[e.id])) { out.innerHTML = '<div class="msg info"><span class="tag">Primero intenta</span>La solución se abre después de tu primer «Revisar». Si no sabes por dónde empezar, abre la pista.</div>'; return; }
     if (inExam && exam && !exam.solvedEx[e.id]) { exam.viewed = exam.viewed || {}; exam.viewed[e.id] = true; store.set('exam', exam); }
@@ -246,21 +285,46 @@ function onAct(e, card, act){
 
 /* ---------- Lecciones ---------- */
 const LESSONS = [], LBYID = {}, QBYID = {};
+const hashStr = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
 MODULES.forEach((m, mi) => m.lessons.forEach((L, li) => {
-  L.mod = m; L.mi = mi; L.li = li; L.quiz = L.quiz || []; L.ex = L.ex || [];
-  L.quiz.forEach((q, qi) => { q.id = L.id + '-' + qi; QBYID[q.id] = q; });
+  L.mod = m; L.mi = mi; L.li = li; L.quiz = L.quiz || []; L.ex = L.ex || []; L.mas = L.mas || []; L.pool = L.pool || [];
+  L.quiz.concat(L.pool).forEach(q => { q.id = L.id + '-' + hashStr(q.q); q.L = L; QBYID[q.id] = q; });
   LESSONS.push(L); LBYID[L.id] = L;
 }));
+const ROUTE = LESSONS.filter(L => !L.optional);
+
+/* ---------- Tiempo estimado ---------- */
+const T_MIN = { wpm: 170, widget: 0.5, q: 0.5, examQ: 0.6, opt: 0.4, set: 0.6, val: 0.6, num: 1, expr: 1, explica: 3 };
+const exMin = id => { const e = EXBYID[id]; return e.k === 'explica' ? T_MIN.explica : e.parts.reduce((a, p) => a + (T_MIN[p.k] || 1), 0); };
+const readMin = html => { const w = html.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length; const wid = (html.match(/data-(tree|arrows|enum|fb)\b|class="calc"/g) || []).length; return w / T_MIN.wpm + wid * T_MIN.widget; };
+function lessonMin(L){
+  const intro = Array.isArray(L.intro) ? L.intro.join(' ') : L.intro;
+  if (L.kind === 'examen') return readMin(intro) + EXAM_Q * T_MIN.examQ + EXAM_EX.reduce((a, g) => { const b = EX.filter(e => e.src === 'examen' && EXAM_BANK[g].indexOf(e.b) >= 0); return a + b.reduce((x, e) => x + exMin(e.id), 0) / b.length; }, 0);
+  return readMin(intro) + L.quiz.length * T_MIN.q + L.ex.reduce((a, id) => a + exMin(id), 0);
+}
+LESSONS.forEach(L => { L.min = lessonMin(L); });
+const fmtMin = m => { m = Math.round(m); if (m < 60) return m + ' min'; const h = Math.floor(m / 60), r = m % 60; return h + ' h' + (r ? ' ' + r + ' min' : ''); };
+const sumMin = Ls => Ls.reduce((a, L) => a + L.min, 0);
 const LOCK_SVG = '<svg viewBox="0 0 12 14" width="10" height="12" aria-hidden="true"><rect x="1" y="6" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M3.5 6V4.2a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
 const hasCheck = L => L.quiz.length > 0 || L.kind === 'examen';
 const hasPractice = L => L.ex.length > 0 || L.kind === 'examen';
 const lessonSec = id => document.querySelector('section.lesson[data-view="' + id + '"]');
+/* Orden de opciones revuelto pero fijo por pregunta: la correcta no queda siempre arriba */
+function optOrder(x){
+  if (x.ord) return x.ord;
+  let h = (parseInt(hashStr(x.q + '|' + x.o.join('|')), 36) % 2147483647) || 1;
+  const rnd = () => { h = (h * 48271) % 2147483647; return h / 2147483647; };
+  const ord = x.o.map((o, j) => j);
+  for (let i = ord.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = ord[i]; ord[i] = ord[j]; ord[j] = t; }
+  return (x.ord = ord);
+}
+const qSrc = x => (x.src || x.teo) ? '<div class="qq-src">' + (x.teo ? '<span class="teo">Teoría</span>' : '') + (x.src ? esc(x.src) : '') + '</div>' : '';
 function quizHTML(qs){
-  return '<div class="sheet"><div class="quiz">' + qs.map((x, i) => '<div class="qq" data-q="' + x.id + '">' + (x.src ? '<div class="qq-src">' + esc(x.src) + '</div>' : '') + '<div>' + (i + 1) + '. ' + x.q + '</div><div class="qq-o">' + x.o.map((o, j) => '<button class="opt" type="button" data-j="' + j + '">' + esc(o) + '</button>').join('') + '</div><div class="qq-w" hidden></div></div>').join('') + '</div></div>';
+  return '<div class="sheet"><div class="quiz">' + qs.map((x, i) => '<div class="qq" data-q="' + x.id + '">' + qSrc(x) + '<div>' + (i + 1) + '. ' + x.q + '</div><div class="qq-o">' + optOrder(x).map(j => '<button class="opt" type="button" data-j="' + j + '">' + esc(x.o[j]) + '</button>').join('') + '</div><div class="qq-w" hidden></div></div>').join('') + '</div></div>';
 }
 function paintQ(qq){
   const x = QBYID[qq.dataset.q]; const j = quizAns[x.id]; if (j === undefined) return;
-  $$('.opt', qq).forEach((b, k) => { b.classList.toggle('right', j === x.a && k === x.a); b.classList.toggle('wrong', k === j && j !== x.a); });
+  $$('.opt', qq).forEach(b => { const k = +b.dataset.j; b.classList.toggle('right', j === x.a && k === x.a); b.classList.toggle('wrong', k === j && j !== x.a); });
   const w = $('.qq-w', qq); w.hidden = false;
   w.textContent = j === x.a ? 'Correcto. ' + x.w : 'No es esa. ' + (x.no || 'Vuelve a leer la parte de arriba e intenta otra opción.');
 }
@@ -292,6 +356,7 @@ function buildLessons(){
     if (check && L.quiz.length) check.innerHTML = quizHTML(L.quiz);
     const prac = $('[data-part=practica] .part-body', sec);
     if (prac && L.ex.length) later.push([prac, L.ex]);
+    if (prac && L.mas.length) { prac.insertAdjacentHTML('afterend', '<details class="more"><summary>Más práctica · ' + plural(L.mas.length, 'ejercicio opcional', 'ejercicios opcionales') + '</summary><p class="small">No cuentan para completar la lección. Sirven para repasar o si te quedó alguna duda.</p><div class="more-body"></div></details>'); later.push([$('.more-body', sec), L.mas]); }
     main.appendChild(sec);
     mountWidgets(learn);
   });
@@ -330,8 +395,8 @@ function paintLesson(L, st){
     let b = null; for (let k = idx - 1; k >= 0; k--) { const P = LESSONS[k]; if (st[P.id].open && !st[P.id].done && !skipped[P.id] && !P.optional) { b = P; break; } }
     lock.innerHTML = '<h2>Esta lección todavía está cerrada</h2><p class="prose">Se abre cuando completes o saltes ' + (b ? '«' + b.t + '»' : 'las lecciones anteriores') + '. Ir en orden ayuda: cada lección usa lo de la anterior.</p><div class="ex-actions">' + (b ? '<a class="btn primary" href="#' + b.id + '">Ir a «' + b.t + '»</a>' : '') + '<button class="btn" type="button" data-peek="' + L.id + '">Verla de todos modos</button></div>';
   }
-  const chips = [];
-  if (L.optional) chips.push('<span class="step-chip">Opcional</span>');
+  const chips = ['<span class="step-chip">≈ ' + fmtMin(L.min) + '</span>'];
+  if (L.optional) chips.push('<span class="step-chip">Extra opcional</span>');
   if (L.quiz.length) chips.push('<span class="step-chip' + (s.qOk === L.quiz.length ? ' ok' : '') + '">Comprueba ' + s.qOk + '/' + L.quiz.length + '</span>');
   if (L.ex.length) chips.push('<span class="step-chip' + (s.exOk === L.ex.length ? ' ok' : '') + '">Practica ' + s.exOk + '/' + L.ex.length + '</span>');
   if (L.kind) chips.push('<span class="step-chip' + (s.done ? ' ok' : '') + '">' + (s.done ? 'Aprobado' : s.kindTxt) + '</span>');
@@ -356,21 +421,23 @@ function renderDash(st){
   st = st || computeStatus();
   const nextL = LESSONS.find(L => st[L.id].open && !st[L.id].done && !skipped[L.id] && !L.optional) || LESSONS.find(L => !st[L.id].done) || LESSONS[LESSONS.length - 1];
   const started = LESSONS.some(L => st[L.id].done || skipped[L.id] || st[L.id].qOk || st[L.id].exOk);
-  const nL = LESSONS.filter(L => st[L.id].done).length;
-  const sum = f => LESSONS.reduce((a, L) => a + f(L), 0);
+  const nL = ROUTE.filter(L => st[L.id].done).length;
+  const sum = f => ROUTE.reduce((a, L) => a + f(L), 0);
   const allQ = sum(L => L.quiz.length), qOk = sum(L => st[L.id].qOk), allE = sum(L => L.ex.length), eOk = sum(L => st[L.id].exOk);
   const hojaOk = HOJA.filter(id => solved[id]).length;
-  const allDone = nL === LESSONS.length;
+  const allDone = nL === ROUTE.length;
+  const extras = LESSONS.filter(L => L.optional), extOk = extras.filter(L => st[L.id].done).length;
+  const left = sumMin(ROUTE.filter(L => !st[L.id].done && !skipped[L.id]));
   $('#dash').innerHTML =
-    '<header class="hero"><p class="eyebrow">Lógica y Estructuras Discretas · Módulo final</p><h1>Cuentas Claras</h1><p class="lede">Funciones y combinatoria paso a paso, con lo que entra en tu tercer examen. Cada lección tiene tres partes: aprendes con ejemplos que puedes mover, compruebas con un quiz corto y practicas con problemas que se corrigen solos.</p></header>' +
-    '<div class="sheet dash-cont"><div class="dc-txt"><p class="eyebrow">' + (allDone ? 'Curso terminado' : started ? 'Sigue donde te quedaste' : 'Empieza aquí') + '</p><h2>' + (allDone ? 'Completaste las ' + LESSONS.length + ' lecciones' : nextL.t) + '</h2><p class="small">' + (allDone ? 'Repasa cualquier lección o haz otro examen.' : 'Módulo ' + (nextL.mi + 1) + ' · ' + esc(nextL.mod.t) + ' · Lección ' + (nextL.li + 1) + ' de ' + nextL.mod.lessons.length) + '</p></div><a class="btn primary big" href="#' + (allDone ? 'examen' : nextL.id) + '">' + (allDone ? 'Hacer otro examen' : started ? 'Continuar' : 'Empezar el curso') + ' →</a></div>' +
-    '<div class="dash-stats"><span><b>' + nL + '</b> de ' + LESSONS.length + ' lecciones</span><span><b>' + qOk + '</b> de ' + allQ + ' preguntas</span><span><b>' + eOk + '</b> de ' + allE + ' ejercicios</span><span><b>' + hojaOk + '</b> de ' + HOJA.length + ' problemas de la hoja</span></div>' +
+    '<header class="hero"><p class="eyebrow">Lógica y Estructuras Discretas · Módulo final</p><h1>Cuentas Claras</h1><p class="lede">Funciones y combinatoria paso a paso, con lo que entra en tu tercer examen, teoría incluida. La ruta completa dura unas ' + fmtMin(Math.round(sumMin(ROUTE) / 5) * 5) + ': ' + (ROUTE.length - 1) + ' lecciones cortas y el simulacro.</p></header>' +
+    '<div class="sheet dash-cont"><div class="dc-txt"><p class="eyebrow">' + (allDone ? 'Curso terminado' : started ? 'Sigue donde te quedaste' : 'Empieza aquí') + '</p><h2>' + (allDone ? 'Terminaste la ruta' : nextL.t) + '</h2><p class="small">' + (allDone ? 'Repasa cualquier lección, los extras o haz otro examen.' : 'Módulo ' + (nextL.mi + 1) + ' · ' + esc(nextL.mod.t) + ' · ≈ ' + fmtMin(nextL.min) + (started ? ' · te faltan ≈ ' + fmtMin(left) + ' de ruta' : '')) + '</p></div><a class="btn primary big" href="#' + (allDone ? 'examen' : nextL.id) + '">' + (allDone ? 'Hacer otro examen' : started ? 'Continuar' : 'Empezar el curso') + ' →</a></div>' +
+    '<div class="dash-stats"><span><b>' + nL + '</b> de ' + ROUTE.length + ' lecciones de la ruta</span><span><b>' + qOk + '</b> de ' + allQ + ' preguntas</span><span><b>' + eOk + '</b> de ' + allE + ' ejercicios</span><span><b>' + extOk + '</b> de ' + extras.length + ' extras</span><span><b>' + hojaOk + '</b> de ' + HOJA.length + ' problemas de la hoja</span></div>' +
     '<div class="tools-row"><a href="#hoja"><b>Hoja de actividades</b><span>Los 61 problemas de tu hoja, con revisión y solución explicada.</span></a><a href="#formulario"><b>Formulario</b><span>Todas las fórmulas y cómo decidir cuál usar.</span></a><a href="#calculadora"><b>Calculadora</b><span>C(n,r), P(n,r), n!, potencias y el enumerador.</span></a></div>' +
-    '<div class="sheet"><h2>Cómo funciona</h2><div class="how"><div><b>1 · Aprende</b><p>Lee la explicación y mueve los ejemplos: calculadoras, árboles y diagramas responden al instante.</p></div><div><b>2 · Comprueba</b><p>Responde el quiz. Si fallas, vuelve a leer e intenta otra opción.</p></div><div><b>3 · Practica</b><p>Escribe el número o la expresión, como <code>C(10,3)</code>, y pulsa Revisar. La solución se abre después de tu primer intento.</p></div></div><p class="small">La siguiente lección se abre cuando completas la actual o la saltas. Para repasar todo antes del examen, activa «Abrir todas las lecciones» en el índice. Tu avance se guarda en este navegador.</p></div>' +
+    '<div class="sheet"><h2>Cómo funciona</h2><div class="how"><div><b>1 · Aprende</b><p>Lee la explicación y mueve los ejemplos: calculadoras, árboles y diagramas responden al instante.</p></div><div><b>2 · Comprueba</b><p>Responde el quiz. Si fallas, vuelve a leer e intenta otra opción.</p></div><div><b>3 · Practica</b><p>Unos pocos problemas obligatorios. Escribe el número o la expresión, como <code>C(10,3)</code>, y pulsa Revisar. Abajo hay «Más práctica» opcional.</p></div></div><p class="prose"><b>Teoría para el examen.</b> Las cajas «De dónde sale» explican cada fórmula como la contestarías en el examen. Las preguntas marcadas con <span class="teo">Teoría</span> y los ejercicios «Explícalo», donde escribes la explicación y la comparas con una respuesta modelo, te preparan para las preguntas de teoría.</p><p class="small">La siguiente lección se abre cuando completas la actual o la saltas. Las lecciones «Extra» son opcionales: no bloquean nada y no están en la lista de temas del examen. Para repasar todo, activa «Abrir todas las lecciones» en el índice. Tu avance se guarda en este navegador.</p></div>' +
     '<div class="mods">' + MODULES.map((m, mi) => {
-      const d = m.lessons.filter(L => st[L.id].done).length;
-      return '<div class="mod"><div class="mod-h"><span class="n">Módulo ' + (mi + 1) + '</span><h3>' + esc(m.t) + '</h3><span class="mc">' + d + '/' + m.lessons.length + '</span></div><p class="small">' + esc(m.d) + '</p><div class="bar"><i style="width:' + Math.round(100 * d / m.lessons.length) + '%"></i></div><ol class="ol mod-ol">' +
-        m.lessons.map(L => { const s = st[L.id]; const cls = s.done ? 'done' : skipped[L.id] ? 'skipped' : s.open ? 'open' : 'locked'; return '<li class="' + cls + '"><a href="#' + L.id + '"><span class="st" aria-hidden="true">' + (cls === 'locked' ? LOCK_SVG : '') + '</span><span class="lt">' + L.t + '</span></a></li>'; }).join('') + '</ol></div>';
+      const req = m.lessons.filter(L => !L.optional); const d = req.filter(L => st[L.id].done).length;
+      return '<div class="mod"><div class="mod-h"><span class="n">Módulo ' + (mi + 1) + '</span><h3>' + esc(m.t) + '</h3><span class="mc">' + d + '/' + req.length + ' · ≈ ' + fmtMin(sumMin(req)) + '</span></div><p class="small">' + esc(m.d) + '</p><div class="bar"><i style="width:' + Math.round(100 * d / req.length) + '%"></i></div><ol class="ol mod-ol">' +
+        m.lessons.map(L => { const s = st[L.id]; const cls = (s.done ? 'done' : skipped[L.id] ? 'skipped' : s.open ? 'open' : 'locked') + (L.optional ? ' extra' : ''); return '<li class="' + cls + '"><a href="#' + L.id + '"><span class="st" aria-hidden="true">' + (cls.indexOf('locked') === 0 ? LOCK_SVG : '') + '</span><span class="lt">' + L.t + '</span><span class="lm">' + fmtMin(L.min) + '</span></a></li>'; }).join('') + '</ol></div>';
     }).join('') + '</div>';
 }
 function refreshProgress(){
@@ -379,12 +446,12 @@ function refreshProgress(){
   LESSONS.forEach(L => {
     const s = st[L.id]; const li = document.querySelector('#outline li[data-li="' + L.id + '"]'); if (!li) return;
     const cls = s.done ? 'done' : skipped[L.id] ? 'skipped' : s.open ? 'open' : 'locked';
-    li.className = cls; $('.st', li).innerHTML = cls === 'locked' ? LOCK_SVG : '';
+    li.className = cls + (L.optional ? ' extra' : ''); $('.st', li).innerHTML = cls === 'locked' ? LOCK_SVG : '';
     $('a', li).title = { done: 'Completada', skipped: 'Saltada', open: 'Disponible', locked: 'Cerrada' }[cls];
   });
-  MODULES.forEach((m, mi) => { const el = document.querySelector('[data-mc="' + mi + '"]'); if (el) el.textContent = m.lessons.filter(L => st[L.id].done).length + '/' + m.lessons.length; });
-  const nDone = LESSONS.filter(L => st[L.id].done).length;
-  $('#pg-les').textContent = nDone + ' / ' + LESSONS.length; $('#pg-bar').style.width = Math.round(100 * nDone / LESSONS.length) + '%';
+  MODULES.forEach((m, mi) => { const el = document.querySelector('[data-mc="' + mi + '"]'); const req = m.lessons.filter(L => !L.optional); if (el) el.textContent = req.filter(L => st[L.id].done).length + '/' + req.length; });
+  const nDone = ROUTE.filter(L => st[L.id].done).length;
+  $('#pg-les').textContent = nDone + ' / ' + ROUTE.length; $('#pg-bar').style.width = Math.round(100 * nDone / ROUTE.length) + '%';
   const hc = $('#hoja-count'); if (hc) hc.textContent = HOJA.filter(id => solved[id]).length + '/' + HOJA.length;
   $$('.ex[data-id]').forEach(card => { const id = card.dataset.id; const ok = card.dataset.pre === 'exam-' ? !!(exam && exam.solvedEx[id]) : !!solved[id]; card.classList.toggle('solved', ok); const c = $('.chip.done', card); if (c) c.hidden = !ok; });
   LESSONS.forEach(L => paintLesson(L, st));
@@ -394,11 +461,13 @@ function refreshProgress(){
 
 /* ---------- Examen ---------- */
 function shuffle(a){ for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function examPool(){ return ROUTE.reduce((a, L) => a.concat(L.quiz, L.pool), []).filter(q => !q.noExam); }
 function newExam(){
-  const pool = shuffle(LESSONS.reduce((a, L) => a.concat(L.quiz.filter(q => !q.noExam)), []));
+  const all = examPool(); const teo = shuffle(all.filter(q => q.teo));
+  const rest = shuffle(teo.slice(EXAM_TEO).concat(all.filter(q => !q.teo)));
   const used = new Set();
-  exam = { n: Date.now(), qs: pool.slice(0, EXAM_Q).map(q => q.id), ans: {}, graded: false, score: 0,
-    ex: EXAM_EX.map(g => { const c = shuffle(EX.filter(e => e.src === 'examen' && e.b === g && !used.has(e.id))); const id = c[0].id; used.add(id); return id; }), solvedEx: {}, viewed: {}, tried: {} };
+  exam = { n: Date.now(), qs: shuffle(teo.slice(0, EXAM_TEO).concat(rest.slice(0, EXAM_Q - EXAM_TEO))).map(q => q.id), ans: {}, graded: false, score: 0,
+    ex: EXAM_EX.map(g => { const c = shuffle(EX.filter(e => e.src === 'examen' && EXAM_BANK[g].indexOf(e.b) >= 0 && !used.has(e.id))); const id = c[0].id; used.add(id); return id; }), solvedEx: {}, viewed: {}, tried: {} };
   store.set('exam', exam);
 }
 function renderExamQuiz(){
@@ -406,7 +475,7 @@ function renderExamQuiz(){
   const qs = exam.qs.map(id => QBYID[id]).filter(Boolean);
   let h = '<div class="sheet"><div class="quiz">' + qs.map((x, i) => {
     const j = exam.ans[x.id];
-    return '<div class="qq" data-eq="' + x.id + '"><div>' + (i + 1) + '. ' + x.q + '</div><div class="qq-o">' + x.o.map((o, k) => {
+    return '<div class="qq" data-eq="' + x.id + '">' + (x.teo ? '<div class="qq-src"><span class="teo">Teoría</span></div>' : '') + '<div>' + (i + 1) + '. ' + x.q + '</div><div class="qq-o">' + optOrder(x).map(k => { const o = x.o[k];
       let c = 'opt'; if (exam.graded) { if (k === x.a) c += ' right'; else if (k === j) c += ' wrong'; } else if (k === j) c += ' sel';
       return '<button class="' + c + '" type="button" data-k="' + k + '"' + (exam.graded ? ' disabled' : '') + '>' + esc(o) + '</button>';
     }).join('') + '</div>' + (exam.graded ? '<div class="qq-w">' + (j === x.a ? 'Correcto. ' : j === undefined ? 'Sin responder. ' : 'Incorrecto. ') + esc(x.w) + '</div>' : '') + '</div>';
@@ -417,7 +486,7 @@ function renderExamQuiz(){
 }
 function renderExamEx(){
   const box = $('[data-part=practica] .part-body', lessonSec('examen')); if (!box) return;
-  box.innerHTML = '<p class="small">Uno de cada tema. Cuentan solo si los resuelves aquí, sin abrir la solución antes.</p>';
+  box.innerHTML = '<p class="small">Uno de cada tema y uno de teoría. Los de cuentas valen si los resuelves aquí sin abrir la solución antes; el de teoría, si tu explicación tiene todos los puntos.</p>';
   mountExercises(box, exam.ex, 'exam-', 'exam' + exam.n + ':');
 }
 document.addEventListener('click', ev => {
@@ -435,7 +504,7 @@ document.addEventListener('click', ev => {
 /* ---------- Hoja de actividades ---------- */
 let hojaFilter = 'todos';
 const HOJA_TEMA = {};
-LESSONS.forEach(L => L.ex.forEach(id => { if (EXBYID[id] && EXBYID[id].src === 'hoja' && !HOJA_TEMA[id]) HOJA_TEMA[id] = L; }));
+LESSONS.forEach(L => L.ex.concat(L.mas).forEach(id => { if (EXBYID[id] && EXBYID[id].src === 'hoja' && !HOJA_TEMA[id]) HOJA_TEMA[id] = L; }));
 function paintHojaHead(){
   const n = HOJA.filter(id => solved[id]).length;
   const el = $('#hoja-prog'); if (el) el.innerHTML = '<div class="pg-row"><span>' + n + ' de ' + HOJA.length + ' resueltos</span><b>' + Math.round(100 * n / HOJA.length) + '%</b></div><div class="bar"><i style="width:' + (100 * n / HOJA.length) + '%"></i></div>';
@@ -474,6 +543,7 @@ function runSelfTest(){
   const add = (s, t) => items.push({ s, t });
   for (const e of EX) {
     const errs = [];
+    if (e.k === 'explica') { add(e.puntos && e.puntos.length >= 3 && e.sol && e.q ? 'pass' : 'fail', e.id + ': Explícalo con ' + plural((e.puntos || []).length, 'punto') + ' y respuesta modelo'); continue; }
     e.parts.forEach((p, i) => {
       const tag = e.id + (e.parts.length > 1 ? '.' + (i + 1) : '');
       try {
@@ -498,23 +568,31 @@ function runSelfTest(){
     }
     add(errs.length ? 'fail' : 'pass', errs.length ? errs.join(' | ') : e.id + ': ' + plural(e.parts.length, 'parte') + ' bien' + (e.bf ? ' · comprobado por fuerza bruta' : ''));
   }
-  LESSONS.forEach(L => L.quiz.forEach(q => {
+  LESSONS.forEach(L => L.quiz.concat(L.pool).forEach(q => {
     if (!(q.a >= 0 && q.a < q.o.length)) { add('fail', 'Pregunta ' + q.id + ': respuesta fuera de rango'); return; }
     if (q.chk) { try { const v = evalExpr(q.chk); const o = tryEval(q.o[q.a].replace(/,/g, '')); const ok = o.q && qEq(o.q, v); add(ok ? 'pass' : 'fail', 'Pregunta ' + q.id + ': ' + (ok ? 'opción verificada (' + fmtQ(v) + ')' : q.chk + ' da ' + fmtQ(v) + ' y la opción dice ' + q.o[q.a])); } catch (err) { add('fail', 'Pregunta ' + q.id + ': ' + err.message); } }
   }));
   Object.keys(TREE_EXPECT).forEach(k => { const n = leaves(TREES[k]().root); add(n === TREE_EXPECT[k] ? 'pass' : 'fail', 'Árbol ' + k + ': ' + n + ' hojas (se esperan ' + TREE_EXPECT[k] + ')'); });
-  LESSONS.forEach(L => L.ex.forEach(id => { if (!EXBYID[id]) add('fail', L.id + ': no existe el ejercicio ' + id); }));
-  const used = new Set(HOJA); LESSONS.forEach(L => L.ex.forEach(id => used.add(id)));
+  LESSONS.forEach(L => L.ex.concat(L.mas).forEach(id => { if (!EXBYID[id]) add('fail', L.id + ': no existe el ejercicio ' + id); }));
+  const used = new Set(HOJA); LESSONS.forEach(L => L.ex.concat(L.mas).forEach(id => used.add(id)));
+  const seen = {}; LESSONS.forEach(L => L.ex.concat(L.mas).forEach(id => { if (seen[id]) add('fail', id + ' está en dos lecciones: ' + seen[id] + ' y ' + L.id); seen[id] = L.id; }));
+  const ids = {}; LESSONS.forEach(L => L.quiz.concat(L.pool).forEach(q => { if (ids[q.id]) add('fail', 'Pregunta repetida: ' + q.id); ids[q.id] = 1; }));
+  ROUTE.forEach(L => { if (L.kind) return; const n = L.quiz.filter(q => q.teo).length; add(n ? 'pass' : 'fail', L.id + ': ' + plural(n, 'pregunta', 'preguntas') + ' de teoría · ≈ ' + fmtMin(L.min)); });
+  const nTeo = examPool().filter(q => q.teo).length; add(nTeo >= EXAM_TEO * 3 ? 'pass' : 'fail', 'Simulacro: ' + nTeo + ' preguntas de teoría y ' + examPool().length + ' en total para escoger');
+  const allQs = LESSONS.reduce((a, L) => a.concat(L.quiz, L.pool), []); const first = allQs.filter(q => optOrder(q)[0] === q.a).length;
+  add(first / allQs.length <= 0.5 ? 'pass' : 'fail', 'Opciones revueltas: la correcta aparece primero en ' + first + ' de ' + allQs.length + ' preguntas');
+  const total = sumMin(ROUTE); add(total >= 100 && total <= 130 ? 'pass' : 'fail', 'Ruta completa ≈ ' + fmtMin(total) + ' (meta: unas dos horas)');
   EX.forEach(e => { if (e.src !== 'examen' && !used.has(e.id)) add('warn', 'El ejercicio ' + e.id + ' no está en ninguna lección'); });
   add(HOJA.length === 61 ? 'pass' : 'fail', 'Hoja: ' + HOJA.length + ' problemas');
-  EXAM_EX.forEach(g => { const n = EX.filter(e => e.src === 'examen' && e.b === g).length; add(n >= 2 ? 'pass' : 'fail', 'Banco del examen, tema ' + g + ': ' + n + ' problemas'); });
+  EXAM_EX.forEach(g => { const n = EX.filter(e => e.src === 'examen' && EXAM_BANK[g].indexOf(e.b) >= 0).length; add(n >= 2 ? 'pass' : 'fail', 'Banco del examen, tema ' + g + ': ' + n + ' problemas'); });
+  const bancos = [].concat.apply([], EXAM_EX.map(g => EXAM_BANK[g])); EX.forEach(e => { if (e.src === 'examen' && bancos.indexOf(e.b) < 0) add('warn', e.id + ' no sale en ningún simulacro'); });
   $$('.calc[data-e]').forEach(el => { const r = tryEval(el.dataset.e); add(r.err ? 'fail' : 'pass', 'Celda «' + el.dataset.e + '»: ' + (r.err || '= ' + fmtQ(r.q))); });
   $$('[data-arrows]').forEach(el => el.dataset.arrows.split(' ').forEach(k => { if (!ARROWS[k]) add('fail', 'Falta el diagrama ' + k); }));
   const known = [['C(5,2)', '10'], ['P(5,2)', '20'], ['5!', '120'], ['V(10,4)', '5040'], ['VR(3,6)', '729'], ['CR(5,12)', '1820'], ['PR(11,2,3,2)', '1663200'], ['PC(8)', '5040'], ['17 mod 5', '2'], ['2^10', '1024'], ['13,983,816', '13983816'], ['3 x 4', '12'], ['(2^7-1)(2^24-2)', '2130706178'], ['-3/2', '-3/2']];
   known.forEach(k => { const r = tryEval(k[0]); const v = k[1].indexOf('/') > 0 ? mkQ(BigInt(k[1].split('/')[0]), BigInt(k[1].split('/')[1])) : Qn(k[1]); add(r.q && qEq(r.q, v) ? 'pass' : 'fail', 'Calculadora: ' + k[0] + ' = ' + (r.q ? fmtQ(r.q) : r.err)); });
   const sets = [['{a, c}', '{c,a}'], ['∅', '{}'], ['{(a,2),(b,4)}', '{(b, 4), (a, 2)}'], ['(-0.5, -3)', '(-1/2,-3)'], ['{{a,b},{a,c}}', '{{c,a},{b,a}}']];
   sets.forEach(k => { const ok = normSet(k[0]) === normSet(k[1]); add(ok ? 'pass' : 'fail', 'Conjuntos: ' + k[0] + ' = ' + k[1]); });
-  add('pass', LESSONS.length + ' lecciones, ' + LESSONS.reduce((a, L) => a + L.quiz.length, 0) + ' preguntas y ' + EX.length + ' ejercicios cargados');
+  add('pass', ROUTE.length + ' lecciones en la ruta y ' + (LESSONS.length - ROUTE.length) + ' extras, ' + LESSONS.reduce((a, L) => a + L.quiz.length + L.pool.length, 0) + ' preguntas y ' + EX.length + ' ejercicios cargados');
   const fails = items.filter(i => i.s === 'fail').length;
   out.innerHTML = '<div class="msg ' + (fails ? 'err' : 'ok') + '"><span class="tag">Autoprueba</span>' + (items.length - fails) + ' bien, ' + fails + ' con problemas.</div><ul>' + items.map(i => '<li class="' + i.s + '"><b>' + (i.s === 'pass' ? '✓' : i.s === 'warn' ? '!' : '✗') + '</b>' + esc(i.t) + '</li>').join('') + '</ul>';
   document.body.dataset.selftest = fails ? 'fail:' + fails : 'ok';
@@ -539,12 +617,12 @@ $('#outline-toggle').addEventListener('click', () => { const o = $('#side').clas
 /* ---------- Arranque ---------- */
 buildOutline();
 buildLessons();
-$('#formulario-body').innerHTML = FORMULARIO_HTML;
+$('#formulario-body').innerHTML = FORMULARIO_HTML + TEORIA_HTML;
 mountWidgets($('#formulario-body'));
 mountWidgets($('section[data-view="calculadora"]'));
 buildHoja();
 initCalc();
-if (!exam || !exam.ex || exam.ex.some(id => !EXBYID[id]) || exam.qs.some(id => !QBYID[id])) newExam();
+if (!exam || !exam.ex || exam.ex.length !== EXAM_EX.length || exam.qs.length !== EXAM_Q || exam.ex.some(id => !EXBYID[id]) || exam.qs.some(id => !QBYID[id])) newExam();
 renderExamQuiz(); renderExamEx();
 const libre = $('#modo-libre'); libre.checked = freeMode;
 libre.addEventListener('change', () => { freeMode = libre.checked; store.set('free', freeMode); refreshProgress(); });
